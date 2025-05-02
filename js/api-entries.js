@@ -328,37 +328,22 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
           const importData = JSON.parse(event.target.result);
           
-          // Validate the import data
-          if (!importData.apis || !Array.isArray(importData.apis)) {
-            throw new Error('Invalid import file format. Missing APIs array.');
+          // Check if this is a Postman collection
+          if (importData.info && importData.item) {
+            // This is a Postman collection format
+            importPostmanCollection(importData);
+          } else if (importData.apis && Array.isArray(importData.apis)) {
+            // This is our standard format with apis array
+            importStandardFormat(importData.apis);
+          } else if (Array.isArray(importData)) {
+            // This is an array of API objects
+            importStandardFormat(importData);
+          } else if (importData.name && importData.url && importData.method) {
+            // This is a single API export
+            importSingleApi(importData);
+          } else {
+            alert('Invalid importing APIs, not a valid format');
           }
-          
-          // Count successful imports
-          let successCount = 0;
-          
-          // Import each API
-          importData.apis.forEach(api => {
-            if (!api.name || !api.url || !api.method) {
-              console.warn('Skipping invalid API entry:', api);
-              return;
-            }
-            
-            // Add the API to the current subfolder
-            DataService.addApiEntry(subfolderId, {
-              name: api.name,
-              url: api.url,
-              method: api.method,
-              description: api.description || ''
-            });
-            
-            successCount++;
-          });
-          
-          // Reload the API list
-          window.loadApiEntries ? window.loadApiEntries() : loadApiEntries();
-          
-          // Show success message
-          alert(`Successfully imported ${successCount} API(s).`);
           
           // Remove the file input from the DOM
           document.body.removeChild(fileInput);
@@ -390,6 +375,96 @@ document.addEventListener('DOMContentLoaded', function() {
     // Append to the document and click it
     document.body.appendChild(fileInput);
     fileInput.click();
+  }
+  
+  // Import from Postman collection format
+  function importPostmanCollection(collection) {
+    try {
+      const apis = [];
+      
+      // Process each item in the collection
+      collection.item.forEach(item => {
+        // Skip folders (items with subitems)
+        if (item.item) return;
+        
+        if (item.request) {
+          // Extract API details from Postman request
+          const apiData = {
+            name: item.name || 'Imported API',
+            url: typeof item.request.url === 'object' ? 
+                 item.request.url.raw || '' : 
+                 item.request.url || '',
+            method: item.request.method || 'GET',
+            description: item.request.description || '',
+            headers: []
+          };
+          
+          // Extract headers
+          if (item.request.header && Array.isArray(item.request.header)) {
+            item.request.header.forEach(header => {
+              if (header.key && !header.disabled) {
+                apiData.headers.push({
+                  key: header.key,
+                  value: header.value || ''
+                });
+              }
+            });
+          }
+          
+          apis.push(apiData);
+        }
+      });
+      
+      if (apis.length === 0) {
+        alert('No valid APIs found in the Postman collection');
+        return;
+      }
+      
+      // Import the extracted APIs
+      const importCount = importApiArray(apis);
+      alert(`Successfully imported ${importCount} APIs from Postman collection`);
+      loadApiEntries();
+      
+    } catch (error) {
+      console.error('Postman import error:', error);
+      alert('Error importing Postman collection: ' + error.message);
+    }
+  }
+  
+  // Import standard format (array of API objects)
+  function importStandardFormat(apiArray) {
+    const importCount = importApiArray(apiArray);
+    alert(`Successfully imported ${importCount} APIs`);
+    loadApiEntries();
+  }
+  
+  // Import a single API
+  function importSingleApi(apiData) {
+    DataService.addApiEntry(subfolderId, apiData);
+    alert('Successfully imported 1 API');
+    loadApiEntries();
+  }
+  
+  // Common function to import an array of APIs
+  function importApiArray(apiArray) {
+    let importCount = 0;
+    
+    apiArray.forEach(api => {
+      if (api.name && api.url && api.method) {
+        DataService.addApiEntry(subfolderId, {
+          name: api.name,
+          url: api.url,
+          method: api.method,
+          description: api.description || '',
+          headers: api.headers || []
+        });
+        importCount++;
+      } else {
+        console.warn('Skipping invalid API entry:', api);
+      }
+    });
+    
+    return importCount;
   }
   
   // Open modal for editing an API
@@ -494,17 +569,39 @@ function exportApi(apiId) {
   const api = DataService.getApiEntryById(apiId);
   if (!api) return;
   
-  // Create export data
-  const exportData = {
-    name: api.name,
-    url: api.url,
-    method: api.method,
-    description: api.description || '',
-    exportDate: new Date().toISOString()
+  // Create Postman collection format
+  const postmanCollection = {
+    info: {
+      _postman_id: generateUUID(),
+      name: api.name,
+      schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      description: api.description || ""
+    },
+    item: [
+      {
+        name: api.name,
+        request: {
+          method: api.method,
+          header: api.headers ? api.headers.map(h => ({
+            key: h.key,
+            value: h.value,
+            type: "text"
+          })) : [],
+          url: {
+            raw: api.url,
+            protocol: api.url.startsWith("https") ? "https" : "http",
+            host: api.url.replace(/^https?:\/\//, '').split('/')[0].split('.'),
+            path: api.url.replace(/^https?:\/\/[^\/]+/, '').split('/').filter(p => p)
+          },
+          description: api.description || ""
+        },
+        response: []
+      }
+    ]
   };
   
   // Convert to JSON string
-  const jsonString = JSON.stringify(exportData, null, 2);
+  const jsonString = JSON.stringify(postmanCollection, null, 2);
   
   // Create a blob with the JSON data
   const blob = new Blob([jsonString], { type: 'application/json' });
@@ -515,7 +612,7 @@ function exportApi(apiId) {
   // Create a temporary link element
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${api.name.replace(/\s+/g, '_')}_api.json`;
+  a.download = `${api.name.replace(/\s+/g, '_')}_postman_collection.json`;
   
   // Append to the document, click it, and remove it
   document.body.appendChild(a);
@@ -939,17 +1036,39 @@ function exportApi(apiId) {
       const api = DataService.getApiEntryById(apiId);
       if (!api) return;
       
-      // Create export data
-      const exportData = {
+  // Create Postman collection format
+  const postmanCollection = {
+    info: {
+      _postman_id: generateUUID(),
+      name: api.name,
+      schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      description: api.description || ""
+    },
+    item: [
+      {
         name: api.name,
-        url: api.url,
-        method: api.method,
-        description: api.description || '',
-        exportDate: new Date().toISOString()
-      };
+        request: {
+          method: api.method,
+          header: api.headers ? api.headers.map(h => ({
+            key: h.key,
+            value: h.value,
+            type: "text"
+          })) : [],
+          url: {
+            raw: api.url,
+            protocol: api.url.startsWith("https") ? "https" : "http",
+            host: api.url.replace(/^https?:\/\//, '').split('/')[0].split('.'),
+            path: api.url.replace(/^https?:\/\/[^\/]+/, '').split('/').filter(p => p)
+          },
+          description: api.description || ""
+        },
+        response: []
+      }
+    ]
+  };
       
       // Convert to JSON string
-      const jsonString = JSON.stringify(exportData, null, 2);
+      const jsonString = JSON.stringify(postmanCollection, null, 2);
       
       // Create a blob with the JSON data
       const blob = new Blob([jsonString], { type: 'application/json' });
@@ -960,7 +1079,7 @@ function exportApi(apiId) {
       // Create a temporary link element
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${api.name.replace(/\s+/g, '_')}_api.json`;
+      a.download = `${api.name.replace(/\s+/g, '_')}_postman_collection.json`;
       
       // Append to the document, click it, and remove it
       document.body.appendChild(a);
@@ -975,50 +1094,76 @@ function exportApi(apiId) {
     
     
       // Export all APIs in the current subfolder
-      function exportAllApis() {
-        const apiEntries = DataService.getApiEntries(subfolderId);
-        if (apiEntries.length === 0) {
-          alert('No APIs to export.');
-          return;
-        }
-        
-        // Get the subfolder name
-        const currentSubfolder = DataService.getSubfolderById(subfolderId);
-        const subfolderName = currentSubfolder ? currentSubfolder.name : 'unknown';
-        
-        // Create export data
-        const exportData = {
-          subfolder: subfolderName,
-          apis: apiEntries.map(api => ({
-            name: api.name,
-            url: api.url,
-            method: api.method,
-            description: api.description || ''
-          })),
-          exportDate: new Date().toISOString()
-        };
-        
-        // Convert to JSON string
-        const jsonString = JSON.stringify(exportData, null, 2);
-        
-        // Create a blob with the JSON data
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        
-        // Create a URL for the blob
-        const url = URL.createObjectURL(blob);
-        
-        // Create a temporary link element
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `all_apis_${subfolderName.replace(/\s+/g, '_')}.json`;
-        
-        // Append to the document, click it, and remove it
-        document.body.appendChild(a);
-        a.click();
-        
-        // Clean up
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 100);
-      }
+function exportAllApis() {
+  const apiEntries = DataService.getApiEntries(subfolderId);
+  if (apiEntries.length === 0) {
+    alert('No APIs to export');
+    return;
+  }
+  
+  // Get subfolder name for the collection name
+  const subfolders = DataService.getSubfolders();
+  const subfolder = subfolders.find(sf => sf.id === subfolderId);
+  const collectionName = subfolder ? subfolder.name : 'API Collection';
+  
+  // Create Postman collection format
+  const postmanCollection = {
+    info: {
+      _postman_id: generateUUID(),
+      name: collectionName,
+      schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      description: `Exported from API Manager - ${collectionName}`
+    },
+    item: apiEntries.map(api => ({
+      name: api.name,
+      request: {
+        method: api.method,
+        header: api.headers ? api.headers.map(h => ({
+          key: h.key,
+          value: h.value,
+          type: "text"
+        })) : [],
+        url: {
+          raw: api.url,
+          protocol: api.url.startsWith("https") ? "https" : "http",
+          host: api.url.replace(/^https?:\/\//, '').split('/')[0].split('.'),
+          path: api.url.replace(/^https?:\/\/[^\/]+/, '').split('/').filter(p => p)
+        },
+        description: api.description || ""
+      },
+      response: []
+    }))
+  };
+
+  // Convert to JSON string
+  const jsonString = JSON.stringify(postmanCollection, null, 2);
+  
+  // Create a blob with the JSON data
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  
+  // Create a URL for the blob
+  const url = URL.createObjectURL(blob);
+  
+  // Create a temporary link element
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${collectionName.replace(/\s+/g, '_')}_postman_collection.json`;
+  
+  // Append to the document, click it, and remove it
+  document.body.appendChild(a);
+  a.click();
+  
+  // Clean up
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+}
+      // Helper function to generate UUID for Postman collection
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
