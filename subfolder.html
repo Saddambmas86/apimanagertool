@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Manager - Subfolders</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Subfolders</h1>
+      <div>
+        <button id="addSubfolderBtn" class="btn">Add New Subfolder</button>
+        <a href="index.html" class="btn btn-secondary">Back to Folders</a>
+      </div>
+    </header>
+    
+    <nav>
+      <ul class="breadcrumb">
+        <li class="breadcrumb-item"><a href="index.html">Main Folders</a></li>
+        <li class="breadcrumb-item active" id="currentFolder">Current Folder</li>
+      </ul>
+    </nav>
+    
+    <div class="content-wrapper">
+      <main class="main-content">
+        <ul id="subfolderList" class="subfolder-list">
+          <!-- Subfolders will be dynamically added here -->
+        </ul>
+      </main>
+    </div>
+    
+    <!-- Add Subfolder Modal -->
+    <div id="addSubfolderModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add New Subfolder</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <form id="addSubfolderForm">
+          <div class="form-group">
+            <label for="subfolderName">Subfolder Name</label>
+            <input type="text" id="subfolderName" required>
+          </div>
+          <button type="submit" class="btn btn-success">Save Subfolder</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/data.js"></script>
+  <script src="js/subfolder.js"></script>
+</body>
+</html>

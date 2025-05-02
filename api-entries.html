@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Manager - API Entries</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>API Entries</h1>
+      <div>
+        <button id="addApiBtn" class="btn">Add New API</button>
+        <button id="exportAllBtn" class="btn btn-export">Export All</button>
+        <button id="importAllBtn" class="btn btn-import">Import All</button>
+        <a href="#" id="backToSubfoldersBtn" class="btn btn-secondary">Back to Subfolders</a>
+      </div>
+    </header>
+    
+    <nav>
+      <ul class="breadcrumb">
+        <li class="breadcrumb-item"><a href="index.html">Main Folders</a></li>
+        <li class="breadcrumb-item"><a href="#" id="subfolderLink">Subfolders</a></li>
+        <li class="breadcrumb-item active" id="currentSubfolder">Current Subfolder</li>
+      </ul>
+    </nav>
+    
+    <div class="content-wrapper">
+      <main class="main-content">
+        <ul id="apiList" class="api-list">
+          <!-- API entries will be dynamically added here -->
+        </ul>
+      </main>
+      
+      <div id="responsePanel" class="response-panel">
+        <div class="response-panel-header">
+          <h2>API Response</h2>
+          <button id="closeResponseBtn" class="btn btn-secondary">Close</button>
+        </div>
+        <div id="responseDetails">
+          <div id="responseStatus" class="response-status"></div>
+          <div id="responseHeaders"></div>
+          <div id="responseContent" class="response-content">
+            <div class="response-empty">No response data to display. Test an API to see the response.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Add/Edit API Modal -->
+    <div id="apiModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">Add New API</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <form id="apiForm">
+          <input type="hidden" id="apiId">
+          <div class="form-group">
+            <label for="apiName">API Name</label>
+            <input type="text" id="apiName" required>
+          </div>
+          <div class="form-group">
+            <label for="apiUrl">URL</label>
+            <input type="url" id="apiUrl" required>
+          </div>
+          <div class="form-group">
+            <label for="apiMethod">Method</label>
+            <select id="apiMethod" required>
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="DELETE">DELETE</option>
+              <option value="PATCH">PATCH</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="apiDescription">Description</label>
+            <textarea id="apiDescription"></textarea>
+          </div>
+          
+          <!-- Headers section -->
+          <div class="form-group">
+            <label>Headers</label>
+            <div id="headersContainer">
+              <!-- Headers will be added here dynamically -->
+            </div>
+            <button type="button" id="addHeaderBtn" class="btn btn-secondary">Add Header</button>
+          </div>
+          
+          <button type="submit" class="btn btn-success">Save API</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/data.js"></script>
+  <script src="js/api-entries.js"></script>
+</body>
+</html>

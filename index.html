@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Manager - Main Folders</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>API Manager</h1>
+      <button id="addFolderBtn" class="btn">Add New Folder</button>
+    </header>
+    
+    <main>
+      <ul id="folderList" class="folder-list">
+        <!-- Folders will be dynamically added here -->
+      </ul>
+    </main>
+    
+    <!-- Add Folder Modal -->
+    <div id="addFolderModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add New Folder</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <form id="addFolderForm">
+          <div class="form-group">
+            <label for="folderName">Folder Name</label>
+            <input type="text" id="folderName" required>
+          </div>
+          <button type="submit" class="btn btn-success">Save Folder</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
