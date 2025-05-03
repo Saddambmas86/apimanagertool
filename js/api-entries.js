@@ -312,51 +312,56 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.json';
+    fileInput.multiple = true; // Allow multiple file selection
     fileInput.style.position = 'absolute';
     fileInput.style.top = '-1000px'; // Position off-screen
     
     fileInput.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) {
+      const files = e.target.files;
+      if (!files || files.length === 0) {
         // Remove the file input if no file was selected
-        document.body.removeChild(fileInput);
+        if (document.body.contains(fileInput)) {
+          document.body.removeChild(fileInput);
+        }
         return;
       }
       
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        try {
-          const importData = JSON.parse(event.target.result);
-          
-          // Check if this is a Postman collection
-          if (importData.info && importData.item) {
-            // This is a Postman collection format
-            importPostmanCollection(importData);
-          } else if (importData.apis && Array.isArray(importData.apis)) {
-            // This is our standard format with apis array
-            importStandardFormat(importData.apis);
-          } else if (Array.isArray(importData)) {
-            // This is an array of API objects
-            importStandardFormat(importData);
-          } else if (importData.name && importData.url && importData.method) {
-            // This is a single API export
-            importSingleApi(importData);
-          } else {
-            alert('Invalid importing APIs, not a valid format');
+      // Process each file independently
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          try {
+            const importData = JSON.parse(event.target.result);
+            
+            // Check if this is a Postman collection
+            if (importData.info && importData.item) {
+              // This is a Postman collection format
+              importPostmanCollection(importData);
+            } else if (importData.apis && Array.isArray(importData.apis)) {
+              // This is our standard format with apis array
+              importStandardFormat(importData.apis);
+            } else if (Array.isArray(importData)) {
+              // This is an array of API objects
+              importStandardFormat(importData);
+            } else if (importData.name && importData.url && importData.method) {
+              // This is a single API export
+              importSingleApi(importData);
+            } else {
+              alert(`Invalid importing API: ${file.name}, not a valid format`);
+            }
+          } catch (error) {
+            alert(`Error importing API ${file.name}: ${error.message}`);
+            console.error('Import error:', error);
           }
-          
-          // Remove the file input from the DOM
-          document.body.removeChild(fileInput);
-        } catch (error) {
-          alert(`Error importing APIs: ${error.message}`);
-          console.error('Import error:', error);
-          
-          // Remove the file input from the DOM
-          document.body.removeChild(fileInput);
-        }
-      };
+        };
+        
+        reader.readAsText(file);
+      });
       
-      reader.readAsText(file);
+      // Remove the file input from the DOM after processing all files
+      if (document.body.contains(fileInput)) {
+        document.body.removeChild(fileInput);
+      }
     });
     
     // Add event listener to remove the input if the dialog is canceled
