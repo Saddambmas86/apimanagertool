@@ -454,15 +454,28 @@ document.addEventListener('DOMContentLoaded', function() {
   function importApiArray(apiArray) {
     let importCount = 0;
     
-    apiArray.forEach(api => {
+    // Generate a unique import batch ID
+    const importBatchId = Date.now();
+    
+    apiArray.forEach((api, index) => {
       if (api.name && api.url && api.method) {
+        // Create a unique ID for each API by adding the index to the timestamp
+        const uniqueApiId = Date.now() + index;
+        console.log('Date.now',Date.now())
+        console.log('index',index);
+        
         DataService.addApiEntry(subfolderId, {
           name: api.name,
           url: api.url,
           method: api.method,
           description: api.description || '',
-          headers: api.headers || []
+          headers: api.headers || [],
+          importBatchId: importBatchId, // Batch ID to track which APIs were imported together
+          uniqueId: uniqueApiId // Unique ID for each API
         });
+        
+        console.log('Imported API with ID:', uniqueApiId, 'Batch:', importBatchId);
+        console.log('ImportedCount:', importCount);
         importCount++;
       } else {
         console.warn('Skipping invalid API entry:', api);
@@ -646,23 +659,23 @@ function exportApi(apiId) {
       return;
     }
     
-    // DOM elements
-    const apiList = document.getElementById('apiList');
-    const currentSubfolder = document.getElementById('currentSubfolder');
-    const subfolderLink = document.getElementById('subfolderLink');
-    const backToSubfoldersBtn = document.getElementById('backToSubfoldersBtn');
-    const addApiBtn = document.getElementById('addApiBtn');
-    const apiModal = document.getElementById('apiModal');
-    const apiForm = document.getElementById('apiForm');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalClose = document.querySelector('.modal-close');
-    const apiIdInput = document.getElementById('apiId');
-    const apiNameInput = document.getElementById('apiName');
-    const apiUrlInput = document.getElementById('apiUrl');
-    const apiMethodInput = document.getElementById('apiMethod');
-    const apiDescriptionInput = document.getElementById('apiDescription');
-    const exportAllBtn = document.getElementById('exportAllBtn');
-    const importAllBtn = document.getElementById('importAllBtn');
+    // // DOM elements
+    // const apiList = document.getElementById('apiList');
+    // const currentSubfolder = document.getElementById('currentSubfolder');
+    // const subfolderLink = document.getElementById('subfolderLink');
+    // const backToSubfoldersBtn = document.getElementById('backToSubfoldersBtn');
+    // const addApiBtn = document.getElementById('addApiBtn');
+    // const apiModal = document.getElementById('apiModal');
+    // const apiForm = document.getElementById('apiForm');
+    // const modalTitle = document.getElementById('modalTitle');
+    // const modalClose = document.querySelector('.modal-close');
+    // const apiIdInput = document.getElementById('apiId');
+    // const apiNameInput = document.getElementById('apiName');
+    // const apiUrlInput = document.getElementById('apiUrl');
+    // const apiMethodInput = document.getElementById('apiMethod');
+    // const apiDescriptionInput = document.getElementById('apiDescription');
+    // const exportAllBtn = document.getElementById('exportAllBtn');
+    // const importAllBtn = document.getElementById('importAllBtn');
     
     // Set subfolder info and navigation
     function setSubfolderInfo() {
@@ -978,13 +991,13 @@ function exportApi(apiId) {
         apiModal.classList.add('active');
       });
       
-      exportAllBtn.addEventListener('click', exportAllApis);
+      //exportAllBtn.addEventListener('click', exportAllApis);
       
-      importAllBtn.addEventListener('click', importAllApis);
+      //importAllBtn.addEventListener('click', importAllApis);
       
-      modalClose.addEventListener('click', function() {
-        apiModal.classList.remove('active');
-      });
+      // modalClose.addEventListener('click', function() {
+      //   apiModal.classList.remove('active');
+      // });
       
       apiForm.addEventListener('submit', function(e) {
         e.preventDefault();
