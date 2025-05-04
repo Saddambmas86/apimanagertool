@@ -123,7 +123,8 @@ const DataService = {
       url: apiData.url,
       method: apiData.method,
       description: apiData.description,
-      headers: apiData.headers || []
+      headers: apiData.headers || [],
+      importBatchId: apiData.importBatchId || null // Store the import batch ID
     };
     apiEntries.push(newApiEntry);
     localStorage.setItem('apiEntries', JSON.stringify(apiEntries));
@@ -151,7 +152,23 @@ const DataService = {
   
   deleteApiEntry: function(apiId) {
     const apiEntries = this.getApiEntries();
-    const filteredEntries = apiEntries.filter(api => api.id !== apiId);
-    localStorage.setItem('apiEntries', JSON.stringify(filteredEntries));
+    // Make sure we're comparing the same type (number to number)
+    apiId = parseInt(apiId);
+    
+    // Log the API being deleted and its ID
+    console.log('Deleting API with ID:', apiId);
+    
+    // Filter out only the API with the exact matching ID
+    const updatedApiEntries = apiEntries.filter(api => {
+      // Convert api.id to number if it's a string
+      const currentApiId = typeof api.id === 'string' ? parseInt(api.id) : api.id;
+      console.log('currentApiId===',currentApiId)
+      return currentApiId !== apiId;
+    });
+    
+    console.log('APIs before deletion:', apiEntries.length);
+    console.log('APIs after deletion:', updatedApiEntries.length);
+    
+    localStorage.setItem('apiEntries', JSON.stringify(updatedApiEntries));
   }
 };
