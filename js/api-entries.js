@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Generate a unique import batch ID
     const importBatchId = Date.now();
     
-    apiArray.forEach((api, index) => {
+    apiArray.forEach((api, indexl) => {
       if (api.name && api.url && api.method) {
         // Create a unique ID for each API by adding the index to the timestamp
         const uniqueApiId = Date.now() + index;
