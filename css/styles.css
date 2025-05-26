@@ -185,15 +185,6 @@ h1 {
   margin-bottom: 5px;
 }
 
-.method-badge {
-  display: inline-block;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  color: white;
-}
-
 .method-GET {
   background-color: #28a745;
 }
@@ -509,6 +500,9 @@ textarea {
   letter-spacing: 0.5px;
   color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-direction: column-reverse;
+  flex-wrap: wrap;
+  align-content: space-around;
 }
 
 .method-GET {
@@ -578,29 +572,85 @@ textarea {
 
 .api-headers ul {
   margin: 0;
-  padding-left: 20px;
-  list-style-type: square;
+  padding-left: 15px;
+  margin: 4px 0;
 }
 
-.api-headers li {
-  margin-bottom: 5px;
-  font-family: monospace;
-  font-size: 13px;
+.api-body {
+  padding: 6px;
+  font-size: 12px;
+  max-height: 150px;
+  overflow: auto;
 }
 
-.no-headers {
-  color: var(--secondary-text);
-  font-style: italic;
-  font-size: 13px;
+/* Make API cards smaller */
+.api-item {
+  margin-bottom: 15px;
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Button container */
-.api-actions {
+.api-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 15px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.api-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Make buttons smaller */
+.btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+/* Make method badges smaller */
+.method-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+/* Make API details more compact */
+.api-details {
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.api-details p {
+  margin: 4px 0;
+}
+
+/* Make headers and body sections more compact */
+.api-headers, .api-body-container {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.api-headers h4, .api-body-container h4 {
+  font-size: 13px;
+  margin: 6px 0;
+}
+
+.api-headers ul {
+  padding-left: 15px;
+  margin: 4px 0;
+}
+
+.api-body {
+  padding: 6px;
+  font-size: 12px;
+  max-height: 150px;
+  overflow: auto;
 }
 
 /* Modern button styles for API cards */
@@ -976,4 +1026,19 @@ textarea {
 
 [data-theme="dark"] .theme-toggle svg {
   fill: #ffffff;
+}
+
+.api-body {
+  background-color: var(--code-bg);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-top: 4px;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  max-height: 200px;
+  overflow-y: auto;
 }
