@@ -3,8 +3,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const urlParams = new URLSearchParams(window.location.search);
   const subfolderId = parseInt(urlParams.get('subfolderId'));
   
+  console.log('Page loaded with subfolderId:', subfolderId);
+
   // Redirect if no subfolder ID
   if (!subfolderId) {
+    console.log('No subfolderId found, redirecting to index.html');
     window.location.href = 'index.html';
     return;
   }
@@ -24,8 +27,20 @@ document.addEventListener('DOMContentLoaded', function() {
   const apiUrlInput = document.getElementById('apiUrl');
   const apiMethodInput = document.getElementById('apiMethod');
   const apiDescriptionInput = document.getElementById('apiDescription');
+  const apiBodyInput = document.getElementById('apiBody');
+  const bodyContainer = document.getElementById('bodyContainer');
   const exportAllBtn = document.getElementById('exportAllBtn');
   const importAllBtn = document.getElementById('importAllBtn');
+  
+  // Show/hide body field based on method
+  function toggleBodyField() {
+    const method = apiMethodInput.value;
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+      bodyContainer.style.display = 'block';
+    } else {
+      bodyContainer.style.display = 'none';
+    }
+  }
   
   // Headers elements
   const headersContainer = document.getElementById('headersContainer');
@@ -145,27 +160,49 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Test API endpoint
-  async function testApiEndpoint(url, method) {
+  async function testApiEndpoint(url, method, apiId) {
     try {
-      // Get headers if apiId is provided
+      // Get headers and body if apiId is provided
       let headers = {
         'Accept': 'application/json'
       };
       
+      let body = null;
+      
       if (apiId) {
         const api = DataService.getApiEntryById(parseInt(apiId));
-        if (api && api.headers && api.headers.length > 0) {
-          api.headers.forEach(header => {
-            headers[header.key] = header.value;
-          });
+        if (api) {
+          // Add headers
+          if (api.headers && api.headers.length > 0) {
+            api.headers.forEach(header => {
+              headers[header.key] = header.value;
+            });
+          }
+          
+          // Add body for POST, PUT, PATCH
+          if ((method === 'POST' || method === 'PUT' || method === 'PATCH') && api.body) {
+            body = api.body;
+            
+            // Add Content-Type header if not present
+            if (!headers['Content-Type']) {
+              headers['Content-Type'] = 'application/json';
+            }
+          }
         }
       }
       
-      // Make the fetch request with headers
-      const response = await fetch(url, { 
+      // Make the fetch request with headers and body
+      const fetchOptions = { 
         method: method,
         headers: headers
-      });
+      };
+      
+      // Add body to request if present
+      if (body) {
+        fetchOptions.body = body;
+      }
+      
+      const response = await fetch(url, fetchOptions);
       
       // Try to parse as JSON first
       let data;
@@ -197,7 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
       return false;
     }
   }
-  
   // Update test result on the API card
   function updateTestResult(buttonElement, result) {
     buttonElement.textContent = result ? 'Pass' : 'Fail';
@@ -214,10 +250,13 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Load API entries - Make this function globally accessible
   window.loadApiEntries = function() {
+    console.log('Loading API entries for subfolderId:', subfolderId);
     const apiEntries = DataService.getApiEntries(subfolderId);
+    console.log('API entries retrieved:', apiEntries);
     apiList.innerHTML = '';
     
     if (apiEntries.length === 0) {
+      console.log('No API entries found for this subfolder');
       apiList.innerHTML = '<p>No API entries found. Add your first API!</p>';
       return;
     }
@@ -238,6 +277,17 @@ document.addEventListener('DOMContentLoaded', function() {
         headersHTML = '<div class="api-headers no-headers">No custom headers</div>';
       }
       
+      // Format body for display (for POST, PUT, PATCH methods)
+      let bodyHTML = '';
+      if ((api.method === 'POST' || api.method === 'PUT' || api.method === 'PATCH') && api.body) {
+        bodyHTML = `
+          <div class="api-body-container">
+            <h4>Request Body:</h4>
+            <pre class="api-body">${api.body}</pre>
+          </div>
+        `;
+      }
+      
       const li = document.createElement('li');
       li.className = 'api-item';
       li.innerHTML = `
@@ -251,10 +301,10 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="btn btn-export export-api" data-id="${api.id}">Export</button>
           </div>
         </div>
-        <div class="api-details">
-          <p><strong>URL:</strong> ${api.url}</p>
-          <p><strong>Description:</strong> ${api.description || 'No description provided'}</p>
-          ${headersHTML}
+    <div class="api-details">
+            <p><strong>URL:</strong> ${api.url}</p>
+            ${api.description ? `<p><strong>Description:</strong> ${api.description}</p>` : ''}
+          </div>
         </div>
       `;
       apiList.appendChild(li);
@@ -279,23 +329,25 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Add event listeners to test buttons
-    document.querySelectorAll('.test-api').forEach(btn => {
-      btn.addEventListener('click', async function() {
-        const url = this.getAttribute('data-url');
-        const method = this.getAttribute('data-method');
-        
-        // Change button text while testing
-        this.textContent = 'Testing...';
-        this.disabled = true;
-        
-        // Test the API
-        const result = await testApiEndpoint(url, method);
-        
-        // Update button with result
-        this.disabled = false;
-        updateTestResult(this, result);
-      });
-    });
+// Add event listeners to test buttons
+document.querySelectorAll('.test-api').forEach(btn => {
+  btn.addEventListener('click', async function() {
+    const url = this.getAttribute('data-url');
+    const method = this.getAttribute('data-method');
+    const apiId = parseInt(this.getAttribute('data-id'));
+    
+    // Change button text while testing
+    this.textContent = 'Testing...';
+    this.disabled = true;
+    
+    // Test the API - now passing the apiId parameter
+    const result = await testApiEndpoint(url, method, apiId);
+    
+    // Update button with result
+    this.disabled = false;
+    updateTestResult(this, result);
+  });
+});
     
     // Add event listeners to export buttons
     document.querySelectorAll('.export-api').forEach(btn => {
@@ -401,8 +453,26 @@ document.addEventListener('DOMContentLoaded', function() {
                  item.request.url || '',
             method: item.request.method || 'GET',
             description: item.request.description || '',
-            headers: []
+            body: item.request.body,
+            headers: [],
           };
+
+          // Extract body for POST, PUT, PATCH methods
+if ((apiData.method === 'POST' || apiData.method === 'PUT' || apiData.method === 'PATCH') && item.request.body) {
+  // Handle different body modes
+  if (item.request.body.mode === 'raw' && item.request.body.raw) {
+    apiData.body = item.request.body.raw;
+  } else if (item.request.body.mode === 'formdata' && Array.isArray(item.request.body.formdata)) {
+    // Convert formdata to JSON
+    const formData = {};
+    item.request.body.formdata.forEach(item => {
+      if (item.key && !item.disabled) {
+        formData[item.key] = item.value || '';
+      }
+    });
+    apiData.body = JSON.stringify(formData, null, 2);
+  }
+}
           
           // Extract headers
           if (item.request.header && Array.isArray(item.request.header)) {
@@ -453,6 +523,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Common function to import an array of APIs
   function importApiArray(apiArray) {
     let importCount = 0;
+    console.log('Importing API array with subfolderId:', subfolderId);
     
     // Generate a unique import batch ID
     const importBatchId = Date.now();
@@ -463,6 +534,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const uniqueApiId = Date.now() + index;
         console.log('Date.now',Date.now())
         console.log('index',index);
+        console.log('Adding API to subfolder:', subfolderId, 'API:', api.name);
         
         DataService.addApiEntry(subfolderId, {
           name: api.name,
@@ -470,6 +542,8 @@ document.addEventListener('DOMContentLoaded', function() {
           method: api.method,
           description: api.description || '',
           headers: api.headers || [],
+          body: api.body || '',
+          subfolderId: subfolderId, // Explicitly set the subfolderId
           importBatchId: importBatchId, // Batch ID to track which APIs were imported together
           uniqueId: uniqueApiId // Unique ID for each API
         });
@@ -485,31 +559,7 @@ document.addEventListener('DOMContentLoaded', function() {
     return importCount;
   }
   
-  // Open modal for editing an API
-  function editApi(apiId) {
-    const api = DataService.getApiEntryById(apiId);
-    if (api) {
-      modalTitle.textContent = 'Edit API';
-      apiIdInput.value = api.id;
-      apiNameInput.value = api.name;
-      apiUrlInput.value = api.url;
-      apiMethodInput.value = api.method;
-      apiDescriptionInput.value = api.description || '';
-      
-      // Clear headers container
-      headersContainer.innerHTML = '';
-      
-      // Add header rows
-      if (api.headers && api.headers.length > 0) {
-        api.headers.forEach(header => {
-          addHeaderRow(header.key, header.value);
-        });
-      }
-      
-      apiModal.classList.add('active');
-    }
-  }
-  
+   
   // Reset form for adding a new API
   function resetForm() {
     modalTitle.textContent = 'Add New API';
@@ -518,6 +568,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Clear headers container
     headersContainer.innerHTML = '';
+    
+    // Set initial body field visibility
+    toggleBodyField();
   }
   
   // Event Listeners
@@ -534,25 +587,48 @@ document.addEventListener('DOMContentLoaded', function() {
     apiModal.classList.remove('active');
   });
   
+  // Add event listener to method select
+  apiMethodInput.addEventListener('change', toggleBodyField);
+  
   apiForm.addEventListener('submit', function(e) {
     e.preventDefault();
     
-    const apiData = {
-      name: apiNameInput.value.trim(),
-      url: apiUrlInput.value.trim(),
-      method: apiMethodInput.value,
-      description: apiDescriptionInput.value.trim(),
-      headers: getHeadersFromForm() // Add headers to the API data
-    };
+    // Make sure apiIdInput is properly defined
+    const apiIdField = document.getElementById('apiId');
+    const apiId = apiIdField.value ? parseInt(apiIdField.value) : null;
     
-    const apiId = apiIdInput.value;
+    const name = apiNameInput.value.trim();
+    const url = apiUrlInput.value.trim();
+    const method = apiMethodInput.value;
+    const description = apiDescriptionInput.value.trim();
+    const headers = getHeadersFromForm();
+    
+    // Get body if method is POST, PUT or PATCH
+    let body = null;
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+      body = apiBodyInput.value.trim();
+    }
     
     if (apiId) {
       // Update existing API
-      DataService.updateApiEntry(parseInt(apiId), apiData);
+      DataService.updateApiEntry(apiId, {
+        name,
+        url,
+        method,
+        description,
+        headers,
+        body
+      });
     } else {
       // Add new API
-      DataService.addApiEntry(subfolderId, apiData);
+      DataService.addApiEntry(subfolderId, {
+        name,
+        url,
+        method,
+        description,
+        headers,
+        body
+      });
     }
     
     apiModal.classList.remove('active');
@@ -582,67 +658,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-// Function to export API details
-function exportApi(apiId) {
-  const api = DataService.getApiEntryById(apiId);
-  if (!api) return;
-  
-  // Create Postman collection format
-  const postmanCollection = {
-    info: {
-      _postman_id: generateUUID(),
-      name: api.name,
-      schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-      description: api.description || ""
-    },
-    item: [
-      {
-        name: api.name,
-        request: {
-          method: api.method,
-          header: api.headers ? api.headers.map(h => ({
-            key: h.key,
-            value: h.value,
-            type: "text"
-          })) : [],
-          url: {
-            raw: api.url,
-            protocol: api.url.startsWith("https") ? "https" : "http",
-            host: api.url.replace(/^https?:\/\//, '').split('/')[0].split('.'),
-            path: api.url.replace(/^https?:\/\/[^\/]+/, '').split('/').filter(p => p)
-          },
-          description: api.description || ""
-        },
-        response: []
-      }
-    ]
-  };
-  
-  // Convert to JSON string
-  const jsonString = JSON.stringify(postmanCollection, null, 2);
-  
-  // Create a blob with the JSON data
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  
-  // Create a URL for the blob
-  const url = URL.createObjectURL(blob);
-  
-  // Create a temporary link element
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${api.name.replace(/\s+/g, '_')}_postman_collection.json`;
-  
-  // Append to the document, click it, and remove it
-  document.body.appendChild(a);
-  a.click();
-  
-  // Clean up
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 100);
-}
-
 
   // Export all APIs in the current subfolder
   // Declare subfolderId as a global variable
@@ -658,25 +673,7 @@ function exportApi(apiId) {
       window.location.href = 'index.html';
       return;
     }
-    
-    // // DOM elements
-    // const apiList = document.getElementById('apiList');
-    // const currentSubfolder = document.getElementById('currentSubfolder');
-    // const subfolderLink = document.getElementById('subfolderLink');
-    // const backToSubfoldersBtn = document.getElementById('backToSubfoldersBtn');
-    // const addApiBtn = document.getElementById('addApiBtn');
-    // const apiModal = document.getElementById('apiModal');
-    // const apiForm = document.getElementById('apiForm');
-    // const modalTitle = document.getElementById('modalTitle');
-    // const modalClose = document.querySelector('.modal-close');
-    // const apiIdInput = document.getElementById('apiId');
-    // const apiNameInput = document.getElementById('apiName');
-    // const apiUrlInput = document.getElementById('apiUrl');
-    // const apiMethodInput = document.getElementById('apiMethod');
-    // const apiDescriptionInput = document.getElementById('apiDescription');
-    // const exportAllBtn = document.getElementById('exportAllBtn');
-    // const importAllBtn = document.getElementById('importAllBtn');
-    
+  
     // Set subfolder info and navigation
     function setSubfolderInfo() {
       const subfolders = DataService.getSubfolders();
@@ -787,20 +784,6 @@ function exportApi(apiId) {
       }
     }
     
-    // Update test result on the API card
-    function updateTestResult(buttonElement, result) {
-      buttonElement.textContent = result ? 'Pass' : 'Fail';
-      buttonElement.className = result ? 
-        'btn btn-success test-result' : 
-        'btn btn-danger test-result';
-      
-      // Reset button after 3 seconds
-      setTimeout(() => {
-        buttonElement.textContent = 'Test';
-        buttonElement.className = 'btn btn-info test-api';
-      }, 3000);
-    }
-    
     // Load API entries
     function loadApiEntries() {
       const apiEntries = DataService.getApiEntries(subfolderId);
@@ -810,29 +793,33 @@ function exportApi(apiId) {
         apiList.innerHTML = '<p>No API entries found. Add your first API!</p>';
         return;
       }
-      
+
+      // Create and append API cards to the DOM
       apiEntries.forEach(api => {
         const li = document.createElement('li');
         li.className = 'api-item';
         li.innerHTML = `
           <div class="api-header">
-            <h3>${api.name}</h3>
             <div>
-              <span class="method-badge method-${api.method}">${api.method}</span>
-              <button class="btn btn-info test-api" data-id="${api.id}" data-url="${api.url}" data-method="${api.method}">Test</button>
-              <button class="btn btn-secondary edit-api" data-id="${api.id}">Edit</button>
+              <h3>${api.name}</h3>
+            </div>
+            <div class="api-actions">
+             <span class="method-badge method-${api.method}">${api.method}</span>
+              <button class="btn btn-secondary test-api" data-id="${api.id}">Test</button>
+              <button class="btn btn-secondary export-api" data-id="${api.id}">Export</button>
+              <button class="btn edit-api" data-id="${api.id}">Edit</button>
               <button class="btn btn-danger delete-api" data-id="${api.id}">Delete</button>
-              <button class="btn btn-export export-api" data-id="${api.id}">Export</button>
             </div>
           </div>
           <div class="api-details">
             <p><strong>URL:</strong> ${api.url}</p>
-            <p><strong>Description:</strong> ${api.description || 'No description provided'}</p>
+            ${api.description ? `<p><strong>Description:</strong> ${api.description}</p>` : ''}
           </div>
         `;
         apiList.appendChild(li);
       });
       
+
       // Add event listeners to edit and delete buttons
       document.querySelectorAll('.edit-api').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -851,25 +838,6 @@ function exportApi(apiId) {
         });
       });
       
-      // Add event listeners to test buttons
-      document.querySelectorAll('.test-api').forEach(btn => {
-        btn.addEventListener('click', async function() {
-          const url = this.getAttribute('data-url');
-          const method = this.getAttribute('data-method');
-          
-          // Change button text while testing
-          this.textContent = 'Testing...';
-          this.disabled = true;
-          
-          // Test the API
-          const result = await testApiEndpoint(url, method);
-          
-          // Update button with result
-          this.disabled = false;
-          updateTestResult(this, result);
-        });
-      });
-      
       // Add event listeners to export buttons
       document.querySelectorAll('.export-api').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -879,26 +847,6 @@ function exportApi(apiId) {
       });
     }
     
-    // Open modal for editing an API
-    function editApi(apiId) {
-      const api = DataService.getApiEntryById(apiId);
-      if (api) {
-        modalTitle.textContent = 'Edit API';
-        apiIdInput.value = api.id;
-        apiNameInput.value = api.name;
-        apiUrlInput.value = api.url;
-        apiMethodInput.value = api.method;
-        apiDescriptionInput.value = api.description || '';
-        apiModal.classList.add('active');
-      }
-    }
-    
-    // Reset form for adding a new API
-    function resetForm() {
-      modalTitle.textContent = 'Add New API';
-      apiForm.reset();
-      apiIdInput.value = '';
-      }  
       // Get headers container and add header button
       const headersContainer = document.getElementById('headersContainer');
       const addHeaderBtn = document.getElementById('addHeaderBtn');
@@ -949,6 +897,38 @@ function exportApi(apiId) {
         return headers;
       }
       
+
+//  // Open modal for editing an API
+//  function editApi(apiId) {
+//   const api = DataService.getApiEntryById(apiId);
+//   if (api) {
+//     modalTitle.textContent = 'Edit API';
+//     apiIdInput.value = api.id;
+//     apiNameInput.value = api.name;
+//     apiUrlInput.value = api.url;
+//     apiMethodInput.value = api.method;
+//     apiDescriptionInput.value = api.description || '';
+//     apiBodyInput.value = api.body || '';
+    
+//     toggleBodyField();
+//     // Clear headers container
+//     headersContainer.innerHTML = '';
+    
+//     // Add header rows
+//     if (api.headers && api.headers.length > 0) {
+//       api.headers.forEach(header => {
+//         addHeaderRow(header.key, header.value);
+//       });
+//     }
+    
+//     // Set body field visibility based on method
+//     toggleBodyField();
+    
+//     apiModal.classList.add('active');
+//   }
+// }
+
+
       // Modify the editApi function to populate headers
       function editApi(apiId) {
         const api = DataService.getApiEntryById(apiId);
@@ -976,24 +956,15 @@ function exportApi(apiId) {
         apiModal.classList.add('active');
       }
       
-      // Reset form for adding a new API
-      function resetForm() {
-        modalTitle.textContent = 'Add New API';
-        apiForm.reset();
-        apiIdInput.value = '';
-        // Clear headers container
-        headersContainer.innerHTML = '';
-      }
+      // // Event Listeners
+      // addApiBtn.addEventListener('click', function() {
+      //   resetForm();
+      //   apiModal.classList.add('active');
+      // });
       
-      // Event Listeners
-      addApiBtn.addEventListener('click', function() {
-        resetForm();
-        apiModal.classList.add('active');
-      });
+      // exportAllBtn.addEventListener('click', exportAllApis);
       
-      //exportAllBtn.addEventListener('click', exportAllApis);
-      
-      //importAllBtn.addEventListener('click', importAllApis);
+      // importAllBtn.addEventListener('click', importAllApis);
       
       // modalClose.addEventListener('click', function() {
       //   apiModal.classList.remove('active');
@@ -1010,6 +981,7 @@ function exportApi(apiId) {
           description: apiDescriptionInput.value.trim(),
           headers: getHeadersFromForm() // Add headers to the API data
         };
+        console.log("APIS",apiData);
         
         if (apiId) {
           // Update existing API
@@ -1050,12 +1022,14 @@ function exportApi(apiId) {
     
     
     // Function to export API details
+
+
     function exportApi(apiId) {
       const api = DataService.getApiEntryById(apiId);
       if (!api) return;
       
-  // Create Postman collection format
-  const postmanCollection = {
+      // Create Postman collection format
+const postmanCollection = {
     info: {
       _postman_id: generateUUID(),
       name: api.name,
@@ -1078,7 +1052,17 @@ function exportApi(apiId) {
             host: api.url.replace(/^https?:\/\//, '').split('/')[0].split('.'),
             path: api.url.replace(/^https?:\/\/[^\/]+/, '').split('/').filter(p => p)
           },
-          description: api.description || ""
+          description: api.description || "",
+          // Add body to the request if it exists and method supports it
+          body: (api.method === 'POST' || api.method === 'PUT' || api.method === 'PATCH') && api.body ? {
+            mode: "raw",
+            raw: api.body,
+            options: {
+              raw: {
+                language: "json"
+              }
+            }
+          } : undefined
         },
         response: []
       }
@@ -1109,7 +1093,6 @@ function exportApi(apiId) {
         URL.revokeObjectURL(url);
       }, 100);
     }
-    
     
       // Export all APIs in the current subfolder
 function exportAllApis() {
@@ -1147,7 +1130,17 @@ function exportAllApis() {
           host: api.url.replace(/^https?:\/\//, '').split('/')[0].split('.'),
           path: api.url.replace(/^https?:\/\/[^\/]+/, '').split('/').filter(p => p)
         },
-        description: api.description || ""
+        description: api.description || "",
+        // Add body to the request if it exists and method supports it
+        body: (api.method === 'POST' || api.method === 'PUT' || api.method === 'PATCH') && api.body ? {
+          mode: "raw",
+          raw: api.body,
+          options: {
+            raw: {
+              language: "json"
+            }
+          }
+        } : undefined
       },
       response: []
     }))
@@ -1184,4 +1177,50 @@ function generateUUID() {
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
+}
+
+function saveApiEntry(event) {
+  event.preventDefault();
+  
+  // Get form values
+  const name = apiNameInput.value.trim();
+  const method = apiMethodInput.value;
+  const url = apiUrlInput.value.trim();
+  const description = apiDescriptionInput.value.trim();
+  
+  // Get body content if applicable
+  let body = '';
+  if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+    body = apiBodyInput.value.trim();
+  }
+  
+  // Get headers
+  const headers = [];
+  const headerRows = headersContainer.querySelectorAll('.header-row');
+  headerRows.forEach(row => {
+    const key = row.querySelector('.header-key').value.trim();
+    const value = row.querySelector('.header-value').value.trim();
+    if (key && value) {
+      headers.push({ key, value });
+    }
+  });
+  
+  // Create or update API entry
+  const apiEntry = {
+    id: currentApiId || generateId(),
+    name,
+    method,
+    url,
+    description,
+    headers,
+    body, // Make sure body is included here
+    subfolderId
+  };
+  
+  // Save to data service
+  DataService.saveApiEntry(apiEntry);
+  
+  // Refresh the list and close modal
+  renderApiList();
+  closeModal();
 }
