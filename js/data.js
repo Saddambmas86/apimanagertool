@@ -15,21 +15,21 @@ const DataService = {
           { id: 3, folderId: 2, name: 'Mock Services' },
           { id: 4, folderId: 3, name: 'Payment Gateway' }
         ],
-        apiEntries: [
-          { 
-            id: 1, 
-            subfolderId: 1, 
-            name: 'Login API', 
-            url: 'https://api.example.com/login', 
-            method: 'POST',
-            description: 'Authenticates users and returns a JWT token'
-          }
-        ]
+        // apiEntries: [
+        //   { 
+        //     id: 1, 
+        //     subfolderId: 1, 
+        //     name: 'Login API', 
+        //     url: 'https://api.example.com/login', 
+        //     method: 'POST',
+        //     description: 'Authenticates users and returns a JWT token'
+        //   }
+        // ]
       };
       
       localStorage.setItem('folders', JSON.stringify(sampleData.folders));
       localStorage.setItem('subfolders', JSON.stringify(sampleData.subfolders));
-      localStorage.setItem('apiEntries', JSON.stringify(sampleData.apiEntries));
+      // localStorage.setItem('apiEntries', JSON.stringify(sampleData.apiEntries));
     }
   },
   
@@ -106,7 +106,20 @@ const DataService = {
   // API Entries CRUD operations
   getApiEntries: function(subfolderId) {
     const apiEntries = JSON.parse(localStorage.getItem('apiEntries') || '[]');
-    return subfolderId ? apiEntries.filter(api => api.subfolderId === subfolderId) : apiEntries;
+    console.log('All API entries from localStorage:', apiEntries);
+    
+    // If subfolderId is provided, filter by it
+    if (subfolderId) {
+      console.log('Filtering by subfolderId:', subfolderId);
+      const filteredEntries = apiEntries.filter(api => {
+        console.log('API entry subfolderId:', api.subfolderId, 'comparing with:', subfolderId, 'result:', api.subfolderId === subfolderId);
+        return api.subfolderId === subfolderId;
+      });
+      console.log('Filtered API entries:', filteredEntries);
+      return filteredEntries;
+    }
+    
+    return apiEntries;
   },
   
   getApiEntryById: function(apiId) {
@@ -115,19 +128,30 @@ const DataService = {
   },
   
   addApiEntry: function(subfolderId, apiData) {
+    console.log('Adding API entry with subfolderId:', subfolderId);
+    console.log('API data:', apiData);
+
     const apiEntries = this.getApiEntries();
     const newApiEntry = {
       id: Date.now(),
-      subfolderId: subfolderId,
+      subfolderId: subfolderId, // Make sure this is set correctly
       name: apiData.name,
       url: apiData.url,
       method: apiData.method,
       description: apiData.description,
       headers: apiData.headers || [],
-      importBatchId: apiData.importBatchId || null // Store the import batch ID
+      body: apiData.body || '',
+      importBatchId: apiData.importBatchId || null
     };
+
+    console.log('New API entry to be added:', newApiEntry);
     apiEntries.push(newApiEntry);
     localStorage.setItem('apiEntries', JSON.stringify(apiEntries));
+
+    // Verify the entry was added correctly
+  const updatedEntries = JSON.parse(localStorage.getItem('apiEntries') || '[]');
+  console.log('Updated API entries in localStorage:', updatedEntries);
+  
     return newApiEntry;
   },
   
@@ -136,14 +160,17 @@ const DataService = {
     const index = apiEntries.findIndex(api => api.id === apiId);
     
     if (index !== -1) {
-      apiEntries[index] = {
-        ...apiEntries[index],
-        name: apiData.name,
-        url: apiData.url,
-        method: apiData.method,
-        description: apiData.description,
-        headers: apiData.headers || []
-      };
+
+       // Preserve the subfolderId from the original entry
+    const subfolderId = apiEntries[index].subfolderId;
+
+    apiEntries[index] = {
+      ...apiEntries[index],
+      ...apiData,
+      subfolderId: subfolderId, // Ensure subfolderId is preserved
+      id: apiId // Ensure ID is preserved
+    };
+    console.log("API DATA:-----",JSON.stringify(apiEntries));
       localStorage.setItem('apiEntries', JSON.stringify(apiEntries));
       return true;
     }
@@ -170,5 +197,27 @@ const DataService = {
     console.log('APIs after deletion:', updatedApiEntries.length);
     
     localStorage.setItem('apiEntries', JSON.stringify(updatedApiEntries));
+  },
+
+  saveApiEntry: function(apiEntry) {
+    const apiEntries = this.getApiEntries();
+    const existingIndex = apiEntries.findIndex(api => api.id === apiEntry.id);
+    
+    if (existingIndex !== -1) {
+      // Update existing entry
+      apiEntries[existingIndex] = apiEntry;
+    } else {
+      // Add new entry
+      apiEntries.push(apiEntry);
+    }
+    
+    localStorage.setItem('apiEntries', JSON.stringify(apiEntries));
+    return apiEntry;
   }
+
+
+
+
+
+
 };
