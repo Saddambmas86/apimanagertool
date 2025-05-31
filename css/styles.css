@@ -98,6 +98,18 @@ h1 {
   color: var(--text-color);
 }
 
+nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-button-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .btn {
   display: inline-block;
   background-color: #007bff;
@@ -415,7 +427,7 @@ textarea {
 /* API List Grid Layout - Modern Design */
 .api-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   padding: 0;
   list-style: none;
@@ -653,7 +665,7 @@ textarea {
   overflow: auto;
 }
 
-/* Modern button styles for API cards */
+/* Modern button styles for API cards
 .api-actions .btn {
   border-radius: 8px;
   font-size: 12px;
@@ -668,7 +680,7 @@ textarea {
   flex: 1;
   min-width: 0;
   text-align: center;
-}
+} */
 
 /* Hover and active states */
 .api-actions .btn:hover {
@@ -709,7 +721,7 @@ textarea {
   background-color: #218838;
 }
 
-.btn-danger {
+.btn-danger .btn-info{
   background-color: #ff5630;
   color: white;
 }
@@ -874,8 +886,8 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 60px;
-  height: 28px;
+  min-width: 30px;
+  height: 20px;
 }
 
 /* Keep the hover and active effects */
@@ -1041,4 +1053,22 @@ textarea {
   color: var(--text-color);
   max-height: 200px;
   overflow-y: auto;
+}
+
+@media (max-width: 1200px) {
+  .api-list {
+    grid-template-columns: repeat(3, 1fr); /* 3 cards per row on medium screens */
+  }
+}
+
+@media (max-width: 768px) {
+  .api-list {
+    grid-template-columns: repeat(2, 1fr); /* 2 cards per row on small screens */
+  }
+}
+
+@media (max-width: 480px) {
+  .api-list {
+    grid-template-columns: 1fr; /* 1 card per row on very small screens */
+  }
 }
