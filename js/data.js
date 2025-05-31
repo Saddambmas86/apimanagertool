@@ -29,13 +29,39 @@ const DataService = {
       
       localStorage.setItem('folders', JSON.stringify(sampleData.folders));
       localStorage.setItem('subfolders', JSON.stringify(sampleData.subfolders));
-      // localStorage.setItem('apiEntries', JSON.stringify(sampleData.apiEntries));
-    }
+
+        if (!localStorage.getItem('storageConfig')) {
+          localStorage.setItem('storageConfig', JSON.stringify(this.storageConfig));
+        }
+        if (!localStorage.getItem('backups')) {
+          localStorage.setItem('backups', JSON.stringify([]));
+        }
+
+      // Setup auto-save if enabled
+    if (this.autoSaveConfig.enabled) {
+      this.setupAutoSave();
+    }}
   },
   
   // Folders CRUD operations
   getFolders: function() {
     return JSON.parse(localStorage.getItem('folders') || '[]');
+  },
+
+  autoSaveToFile: async function(data) {
+    try {
+      const response = await fetch('api_manager_data.json', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data, null, 2)
+      });
+      return response.ok;
+    } catch (error) {
+      console.error('Error saving to file:', error);
+      return false;
+    }
   },
   
   addFolder: function(name) {
@@ -46,6 +72,11 @@ const DataService = {
     };
     folders.push(newFolder);
     localStorage.setItem('folders', JSON.stringify(folders));
+    this.autoSaveToFile({
+      folders: folders,
+      subfolders: this.getSubfolders(),
+      apiEntries: this.getApiEntries()
+    });
     return newFolder;
   },
   
@@ -66,6 +97,12 @@ const DataService = {
     const subfoldersIds = subfoldersToDelete.map(sf => sf.id);
     const updatedApiEntries = apiEntries.filter(api => !subfoldersIds.includes(api.subfolderId));
     localStorage.setItem('apiEntries', JSON.stringify(updatedApiEntries));
+
+    this.autoSaveToFile({
+      folders: updatedFolders,
+      subfolders: updatedSubfolders,
+      apiEntries: updatedApiEntries
+    });
   },
   
   // Subfolders CRUD operations
@@ -151,7 +188,11 @@ const DataService = {
     // Verify the entry was added correctly
   const updatedEntries = JSON.parse(localStorage.getItem('apiEntries') || '[]');
   console.log('Updated API entries in localStorage:', updatedEntries);
-  
+  this.autoSaveToFile({
+    folders: this.getFolders(),
+    subfolders: this.getSubfolders(),
+    apiEntries: apiEntries
+  });
     return newApiEntry;
   },
   
@@ -213,11 +254,227 @@ const DataService = {
     
     localStorage.setItem('apiEntries', JSON.stringify(apiEntries));
     return apiEntry;
+  },
+
+
+  autoSaveConfig: {
+    enabled: true,
+    debounceDelay: 2000, // Wait 2 seconds after last change before saving
+    lastSaved: null
+  },
+
+  // File storage operations
+  fileStorage: {
+    fileName: 'api_manager_data.json',
+
+    // Save data to file
+    saveToFile: function() {
+      const data = {
+        folders: JSON.parse(localStorage.getItem('folders') || '[]'),
+        subfolders: JSON.parse(localStorage.getItem('subfolders') || '[]'),
+        apiEntries: JSON.parse(localStorage.getItem('apiEntries') || '[]'),
+        lastSaved: new Date().toISOString()
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = this.fileName;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    },
+
+    // Load data from file
+    loadFromFile: function() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            
+            // Validate data structure
+            if (data.folders && data.subfolders && data.apiEntries) {
+              localStorage.setItem('folders', JSON.stringify(data.folders));
+              localStorage.setItem('subfolders', JSON.stringify(data.subfolders));
+              localStorage.setItem('apiEntries', JSON.stringify(data.apiEntries));
+              
+              // Refresh the page to show loaded data
+              window.location.reload();
+              alert('file uploaded Successfully')
+            } else {
+              alert('Invalid data file format');
+            }
+          } catch (error) {
+            console.error('Error loading data:', error);
+            alert('Error loading data file');
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      input.click();
+    }
+  },
+
+
+  storageConfig: {
+    autoSaveInterval: 5000, // Auto-save every 5 seconds
+    maxBackups: 5, // Maximum number of backups to keep
+    lastAutoSave: null
+  },
+
+  loadSavedData: async function() {
+    try {
+      const response = await fetch('api_manager_data.json');
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update localStorage with loaded data
+        localStorage.setItem('folders', JSON.stringify(data.folders));
+        localStorage.setItem('subfolders', JSON.stringify(data.subfolders));
+        localStorage.setItem('apiEntries', JSON.stringify(data.apiEntries));
+        
+        console.log('Saved data loaded successfully');
+        return true;
+      }
+    } catch (error) {
+      console.log('No saved data found or error loading data');
+      return false;
+    }
+  },
+
+    // Auto-save functionality
+    startAutoSave: function() {
+      setInterval(() => {
+        this.createBackup();
+        this.storageConfig.lastAutoSave = new Date().toISOString();
+        localStorage.setItem('storageConfig', JSON.stringify(this.storageConfig));
+      }, this.storageConfig.autoSaveInterval);
+    },
+
+
+// Create a backup of current data
+createBackup: function() {
+  const currentData = {
+    timestamp: new Date().toISOString(),
+    folders: this.getFolders(),
+    subfolders: this.getSubfolders(),
+    apiEntries: this.getApiEntries()
+  };
+
+  let backups = JSON.parse(localStorage.getItem('backups') || '[]');
+  backups.unshift(currentData);
+
+  // Keep only the specified number of backups
+  if (backups.length > this.storageConfig.maxBackups) {
+    backups = backups.slice(0, this.storageConfig.maxBackups);
+  }
+
+  localStorage.setItem('backups', JSON.stringify(backups));
+},
+
+
+  // Restore from a backup
+  restoreFromBackup: function(timestamp) {
+    const backups = JSON.parse(localStorage.getItem('backups') || '[]');
+    const backup = backups.find(b => b.timestamp === timestamp);
+
+    if (backup) {
+      localStorage.setItem('folders', JSON.stringify(backup.folders));
+      localStorage.setItem('subfolders', JSON.stringify(backup.subfolders));
+      localStorage.setItem('apiEntries', JSON.stringify(backup.apiEntries));
+      return true;
+    }
+    return false;
+  },
+
+  // Get available backups
+  getBackups: function() {
+    return JSON.parse(localStorage.getItem('backups') || '[]');
+  },
+
+  // Clear old backups
+  clearBackups: function() {
+    localStorage.setItem('backups', JSON.stringify([]));
+  },
+
+  setupAutoSave: function() {
+    let saveTimeout = null;
+
+    // Function to save data to file
+    const saveData = async () => {
+      const data = {
+        folders: this.getFolders(),
+        subfolders: this.getSubfolders(),
+        apiEntries: this.getApiEntries(),
+        lastSaved: new Date().toISOString()
+      };
+
+      try {
+        // Save to file using the Fetch API
+        const response = await fetch('api_manager_data.json', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data, null, 2)
+        });
+
+        if (response.ok) {
+          this.autoSaveConfig.lastSaved = new Date().toISOString();
+          console.log('Data auto-saved successfully');
+        }
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      }
+    };
+
+    // Modify all data modification methods to trigger auto-save
+    const originalMethods = {
+      addFolder: this.addFolder,
+      deleteFolder: this.deleteFolder,
+      addSubfolder: this.addSubfolder,
+      deleteSubfolder: this.deleteSubfolder,
+      addApiEntry: this.addApiEntry,
+      updateApiEntry: this.updateApiEntry,
+      deleteApiEntry: this.deleteApiEntry,
+      saveApiEntry: this.saveApiEntry
+    };
+
+    // Wrap each method with auto-save functionality
+    Object.keys(originalMethods).forEach(methodName => {
+      this[methodName] = (...args) => {
+        const result = originalMethods[methodName].apply(this, args);
+
+        // Clear existing timeout and set a new one
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+        }
+        saveTimeout = setTimeout(saveData, this.autoSaveConfig.debounceDelay);
+
+        return result;
+      };
+    });
   }
 
 
-
-
-
-
 };
+
+
+document.addEventListener('DOMContentLoaded', async () => {
+
+      // Save button
+      const saveBtn = document.getElementById('addsave');
+      saveBtn.onclick = () => DataService.fileStorage.saveToFile();
+      
+      // Load button
+      const loadBtn = document.getElementById('addload');
+      loadBtn.onclick = () => DataService.fileStorage.loadFromFile();
+});
