@@ -41,6 +41,8 @@ document.addEventListener('DOMContentLoaded', function() {
       bodyContainer.style.display = 'none';
     }
   }
+
+
   
   // Headers elements
   const headersContainer = document.getElementById('headersContainer');
@@ -234,6 +236,37 @@ document.addEventListener('DOMContentLoaded', function() {
       return false;
     }
   }
+
+  window.editApi = function(apiId) {
+    const api = DataService.getApiEntryById(apiId);
+    if (!api) return;
+    
+    // Clear existing headers
+    headersContainer.innerHTML = '';
+    
+    // Set form values
+    modalTitle.textContent = 'Edit API';
+    apiIdInput.value = api.id;
+    apiNameInput.value = api.name;
+    apiUrlInput.value = api.url;
+    apiMethodInput.value = api.method;
+    apiDescriptionInput.value = api.description || '';
+    apiBodyInput.value = api.body || '';  // Set the body value
+    
+    // Add header fields if they exist
+    if (api.headers && api.headers.length > 0) {
+      api.headers.forEach(header => {
+        addHeaderRow(header.key, header.value);  // Use addHeaderRow instead of addHeaderField
+      });
+    }
+    
+    // Set body field visibility based on method
+    toggleBodyField();  // Make sure this is called to show/hide body field
+    
+    // Show modal
+    apiModal.classList.add('active');
+  };
+
   // Update test result on the API card
   function updateTestResult(buttonElement, result) {
     buttonElement.textContent = result ? 'Pass' : 'Fail';
@@ -310,11 +343,15 @@ document.addEventListener('DOMContentLoaded', function() {
       apiList.appendChild(li);
     });
     
+
+
     // Add event listeners to edit and delete buttons
     document.querySelectorAll('.edit-api').forEach(btn => {
       btn.addEventListener('click', function() {
+        console.log('apid:===before')
         const apiId = parseInt(this.getAttribute('data-id'));
-        editApi(apiId);
+        console.log('apid:===',apiId)
+        editApi(apiId)
       });
     });
     
@@ -328,6 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     });
     
+
     // Add event listeners to test buttons
 // Add event listeners to test buttons
 document.querySelectorAll('.test-api').forEach(btn => {
@@ -708,6 +746,8 @@ if ((apiData.method === 'POST' || apiData.method === 'PUT' || apiData.method ===
         return json;
       }
     }
+
+
     
     // Display response in the panel
     function displayResponse(response, data) {
@@ -805,8 +845,8 @@ if ((apiData.method === 'POST' || apiData.method === 'PUT' || apiData.method ===
             </div>
             <div class="api-actions">
              <span class="method-badge method-${api.method}">${api.method}</span>
-              <button class="btn btn-secondary test-api" data-id="${api.id}">Test</button>
-              <button class="btn btn-secondary export-api" data-id="${api.id}">Export</button>
+              <button class="btn btn-info test-api" data-id="${api.id}" data-url="${api.url}" data-method="${api.method}">Test</button>
+              <button class="btn btn-export export-api" data-id="${api.id}">Export</button>
               <button class="btn edit-api" data-id="${api.id}">Edit</button>
               <button class="btn btn-danger delete-api" data-id="${api.id}">Delete</button>
             </div>
@@ -843,6 +883,26 @@ if ((apiData.method === 'POST' || apiData.method === 'PUT' || apiData.method ===
         btn.addEventListener('click', function() {
           const apiId = parseInt(this.getAttribute('data-id'));
           exportApi(apiId);
+        });
+      });
+      
+      // Add event listeners to test buttons
+      document.querySelectorAll('.test-api').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const url = this.getAttribute('data-url');
+          const method = this.getAttribute('data-method');
+          const apiId = parseInt(this.getAttribute('data-id'));
+          
+          // Change button text while testing
+          this.textContent = 'Testing...';
+          this.disabled = true;
+          
+          // Test the API - now passing the apiId parameter
+          const result = await testApiEndpoint(url, method, apiId);
+          
+          // Update button with result
+          this.disabled = false;
+          updateTestResult(this, result);
         });
       });
     }
@@ -896,79 +956,7 @@ if ((apiData.method === 'POST' || apiData.method === 'PUT' || apiData.method ===
         
         return headers;
       }
-      
-
-//  // Open modal for editing an API
-//  function editApi(apiId) {
-//   const api = DataService.getApiEntryById(apiId);
-//   if (api) {
-//     modalTitle.textContent = 'Edit API';
-//     apiIdInput.value = api.id;
-//     apiNameInput.value = api.name;
-//     apiUrlInput.value = api.url;
-//     apiMethodInput.value = api.method;
-//     apiDescriptionInput.value = api.description || '';
-//     apiBodyInput.value = api.body || '';
     
-//     toggleBodyField();
-//     // Clear headers container
-//     headersContainer.innerHTML = '';
-    
-//     // Add header rows
-//     if (api.headers && api.headers.length > 0) {
-//       api.headers.forEach(header => {
-//         addHeaderRow(header.key, header.value);
-//       });
-//     }
-    
-//     // Set body field visibility based on method
-//     toggleBodyField();
-    
-//     apiModal.classList.add('active');
-//   }
-// }
-
-
-      // Modify the editApi function to populate headers
-      function editApi(apiId) {
-        const api = DataService.getApiEntryById(apiId);
-        if (!api) return;
-        
-        // Clear existing headers
-        headersContainer.innerHTML = '';
-        
-        // Set form values
-        modalTitle.textContent = 'Edit API';
-        apiIdInput.value = api.id;
-        apiNameInput.value = api.name;
-        apiUrlInput.value = api.url;
-        apiMethodInput.value = api.method;
-        apiDescriptionInput.value = api.description || '';
-        
-        // Add header fields if they exist
-        if (api.headers && api.headers.length > 0) {
-          api.headers.forEach(header => {
-            addHeaderField(header.key, header.value);
-          });
-        }
-        
-        // Show modal
-        apiModal.classList.add('active');
-      }
-      
-      // // Event Listeners
-      // addApiBtn.addEventListener('click', function() {
-      //   resetForm();
-      //   apiModal.classList.add('active');
-      // });
-      
-      // exportAllBtn.addEventListener('click', exportAllApis);
-      
-      // importAllBtn.addEventListener('click', importAllApis);
-      
-      // modalClose.addEventListener('click', function() {
-      //   apiModal.classList.remove('active');
-      // });
       
       apiForm.addEventListener('submit', function(e) {
         e.preventDefault();
