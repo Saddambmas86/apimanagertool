@@ -1,0 +1,73 @@
+{
+  "folders": [
+    {
+      "id": 1,
+      "name": "Development APIs"
+    },
+    {
+      "id": 2,
+      "name": "Testing APIs"
+    },
+    {
+      "id": 3,
+      "name": "Production APIs"
+    }
+  ],
+  "subfolders": [
+    {
+      "id": 1,
+      "folderId": 1,
+      "name": "Authentication"
+    },
+    {
+      "id": 2,
+      "folderId": 1,
+      "name": "User Management"
+    },
+    {
+      "id": 3,
+      "folderId": 2,
+      "name": "Mock Services"
+    },
+    {
+      "id": 4,
+      "folderId": 3,
+      "name": "Payment Gateway"
+    }
+  ],
+  "apiEntries": [
+    {
+      "id": 1748707321113,
+      "subfolderId": 1,
+      "name": "GET API",
+      "url": "https://jsonplaceholder.typicode.com/posts/1",
+      "method": "GET",
+      "description": "",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": "",
+      "importBatchId": 1748707321112
+    },
+    {
+      "id": 1748707321114,
+      "subfolderId": 1,
+      "name": "POST API",
+      "url": "https://jsonplaceholder.typicode.com/posts",
+      "method": "POST",
+      "description": "POST API",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": "[{\n    \"userId\": 8,\n    \"id\": 55,\n    \"title\": \"Post created by Nikola\",\n    \"body\": \"This is first post request on fake api server jsonplaceholder\"\n  },\n  {\n    \"userId\": 4,\n    \"id\": 44,\n    \"title\": \"Post created by Marko\",\n    \"body\": \"This is first post request on fake api server jsonplaceholder\"\n  }]",
+      "importBatchId": 1748707321112
+    }
+  ],
+  "lastSaved": "2025-05-31T16:02:07.900Z"
+}
