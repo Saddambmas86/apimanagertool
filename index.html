@@ -49,25 +49,25 @@
   <script src="js/data.js"></script>
   <script src="js/main.js"></script>
   <script src="js/theme.js"></script>
- <script>
-  // Load data when the page loads
-  window.addEventListener('DOMContentLoaded', async () => {
-    try {
-      const response = await fetch('api_manager_data.json');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+  <script>
+    // Load data when the page loads
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const response = await fetch('api_manager_data.json');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        // Initialize the data in localStorage
+        if (data.folders) localStorage.setItem('folders', JSON.stringify(data.folders));
+        if (data.subfolders) localStorage.setItem('subfolders', JSON.stringify(data.subfolders));
+        if (data.apiEntries) localStorage.setItem('apiEntries', JSON.stringify(data.apiEntries));
+        // // Refresh the UI
+        // location.reload();
+      } catch (error) {
+        console.error('Error loading data:', error);
       }
-      const data = await response.json();
-      // Initialize the data in localStorage
-      if (data.folders) localStorage.setItem('folders', JSON.stringify(data.folders));
-      if (data.subfolders) localStorage.setItem('subfolders', JSON.stringify(data.subfolders));
-      if (data.apiEntries) localStorage.setItem('apiEntries', JSON.stringify(data.apiEntries));
-      // // Refresh the UI
-      // location.reload();
-    } catch (error) {
-      console.error('Error loading data:', error);
-    }
-  });
-</script>
+    });
+  </script>
 </body>
 </html>
