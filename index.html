@@ -49,6 +49,20 @@
   <script src="js/data.js"></script>
   <script src="js/main.js"></script>
   <script src="js/theme.js"></script>
-  <script>fetch('api_manager_data.json')</script>
+  <script>fetch('api_manager_data.json')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Data received:', data);
+      // Here you would typically do something with the data
+      // For example, update the page content
+    })
+    .catch(error => {
+      console.error('There was a problem with the fetch operation:', error);
+    });</script>
 </body>
 </html>
