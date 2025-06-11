@@ -58,33 +58,12 @@
     })
     .then(data => {
       console.log('Data received:', data);
-      displayData(data);
       // Here you would typically do something with the data
       // For example, update the page content
     })
     .catch(error => {
       console.error('There was a problem with the fetch operation:', error);
     });
-  
-  function displayData(data) {
-            const container = document.getElementById('data-container');
-            
-            // Check if data is an array or object
-            if (Array.isArray(data)) {
-                // Handle array data
-                container.innerHTML = data.map(item => 
-                    `<div class="data-item">${JSON.stringify(item)}</div>`
-                ).join('');
-            } else if (typeof data === 'object' && data !== null) {
-                // Handle object data
-                container.innerHTML = Object.entries(data).map(([key, value]) => 
-                    `<div class="data-item"><strong>${key}:</strong> ${JSON.stringify(value)}</div>`
-                ).join('');
-            } else {
-                // Handle other data types
-                container.innerHTML = `<div class="data-item">${data}</div>`;
-            }
-        }
   </script>
 </body>
 </html>
