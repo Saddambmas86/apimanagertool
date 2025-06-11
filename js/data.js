@@ -62,7 +62,7 @@ const DataService = {
       localStorage.setItem('lastSavedData', JSON.stringify(completeData));
 
       // Save to file using fetch
-      const response = await fetch('/save-data', {
+      const response = await fetch('api_manager_data.json', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
