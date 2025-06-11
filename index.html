@@ -49,21 +49,24 @@
   <script src="js/data.js"></script>
   <script src="js/main.js"></script>
   <script src="js/theme.js"></script>
-  <script>fetch('api_manager_data.json')
-    .then(response => {
+  <script>// Load data when the page loads
+  window.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const response = await fetch('api_manager_data.json');
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      return response.json();
-    })
-    .then(data => {
-      console.log('Data received:', data);
-      // Here you would typically do something with the data
-      // For example, update the page content
-    })
-    .catch(error => {
-      console.error('There was a problem with the fetch operation:', error);
-    });
+      const data = await response.json();
+      // Initialize the data in localStorage
+      if (data.folders) localStorage.setItem('folders', JSON.stringify(data.folders));
+      if (data.subfolders) localStorage.setItem('subfolders', JSON.stringify(data.subfolders));
+      if (data.apiEntries) localStorage.setItem('apiEntries', JSON.stringify(data.apiEntries));
+      // Refresh the UI
+      location.reload();
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
+  });
   </script>
 </body>
 </html>
