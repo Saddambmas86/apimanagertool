@@ -50,36 +50,33 @@ const DataService = {
 
   autoSaveToFile: async function(data) {
     try {
-      // Create a complete data object
-      const completeData = {
-        folders: this.getFolders(),
-        subfolders: this.getSubfolders(),
-        apiEntries: this.getApiEntries(),
-        lastUpdated: new Date().toISOString()
-      };
+        const completeData = {
+            folders: this.getFolders(),
+            subfolders: this.getSubfolders(),
+            apiEntries: this.getApiEntries(),
+            lastUpdated: new Date().toISOString()
+        };
 
-      // Save to localStorage as backup
-      localStorage.setItem('lastSavedData', JSON.stringify(completeData));
+        const response = await fetch('http://localhost:3000/api/data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(completeData)
+        });
 
-      // Save to file using fetch
-      const response = await fetch('api_manager_data.json', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(completeData, null, 2)
-      });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return true;
+        // Save to localStorage as backup
+        localStorage.setItem('lastSavedData', JSON.stringify(completeData));
+        return true;
     } catch (error) {
-      console.error('Error saving to file:', error);
-      return false;
+        console.error('Error saving to file:', error);
+        return false;
     }
-  },
+},
   
   addFolder: function(name) {
     const folders = this.getFolders();
@@ -349,23 +346,23 @@ const DataService = {
 
   loadSavedData: async function() {
     try {
-      const response = await fetch('api_manager_data.json');
-      if (response.ok) {
+        const response = await fetch('http://localhost:3000/api/data');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         
         // Update localStorage with loaded data
-        localStorage.setItem('folders', JSON.stringify(data.folders));
-        localStorage.setItem('subfolders', JSON.stringify(data.subfolders));
-        localStorage.setItem('apiEntries', JSON.stringify(data.apiEntries));
+        if (data.folders) localStorage.setItem('folders', JSON.stringify(data.folders));
+        if (data.subfolders) localStorage.setItem('subfolders', JSON.stringify(data.subfolders));
+        if (data.apiEntries) localStorage.setItem('apiEntries', JSON.stringify(data.apiEntries));
         
-        console.log('Saved data loaded successfully');
         return true;
-      }
     } catch (error) {
-      console.log('No saved data found or error loading data');
-      return false;
+        console.error('Error loading data:', error);
+        return false;
     }
-  },
+},
 
     // Auto-save functionality
     startAutoSave: function() {
@@ -485,13 +482,33 @@ createBackup: function() {
 };
 
 
-document.addEventListener('DOMContentLoaded', async () => {
+// ... existing code ...
 
-      // Save button
-      const saveBtn = document.getElementById('addsave');
-      saveBtn.onclick = () => DataService.fileStorage.saveToFile();
-      
-      // Load button
-      const loadBtn = document.getElementById('addload');
-      loadBtn.onclick = () => DataService.fileStorage.loadFromFile();
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize DataService first
+  DataService.init();
+
+  // Save button
+  const saveBtn = document.getElementById('addsave');
+  if (saveBtn) { // Add null check
+      saveBtn.onclick = () => {
+          if (DataService.fileStorage && typeof DataService.fileStorage.saveToFile === 'function') {
+              DataService.fileStorage.saveToFile();
+          } else {
+              console.error('fileStorage or saveToFile function not available');
+          }
+      };
+  }
+  
+  // Load button
+  const loadBtn = document.getElementById('addload');
+  if (loadBtn) { // Add null check
+      loadBtn.onclick = () => {
+          if (DataService.fileStorage && typeof DataService.fileStorage.loadFromFile === 'function') {
+              DataService.fileStorage.loadFromFile();
+          } else {
+              console.error('fileStorage or loadFromFile function not available');
+          }
+      };
+  }
 });
