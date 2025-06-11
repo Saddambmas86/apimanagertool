@@ -50,14 +50,31 @@ const DataService = {
 
   autoSaveToFile: async function(data) {
     try {
-      const response = await fetch('api_manager_data.json', {
-        method: 'PUT',
+      // Create a complete data object
+      const completeData = {
+        folders: this.getFolders(),
+        subfolders: this.getSubfolders(),
+        apiEntries: this.getApiEntries(),
+        lastUpdated: new Date().toISOString()
+      };
+
+      // Save to localStorage as backup
+      localStorage.setItem('lastSavedData', JSON.stringify(completeData));
+
+      // Save to file using fetch
+      const response = await fetch('/save-data', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data, null, 2)
+        body: JSON.stringify(completeData, null, 2)
       });
-      return response.ok;
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return true;
     } catch (error) {
       console.error('Error saving to file:', error);
       return false;
